@@ -1,0 +1,127 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: easytravel-frontend-rollout
+  namespace: easytravel
+spec:
+  selector:
+    matchLabels:
+      app: easytravel
+      tier: frontend
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: easytravel
+        tier: frontend
+        app.kubernetes.io/name: easytravel-frontend
+        app.kubernetes.io/version: 2.0.0.3408
+      annotations:
+        contact: "demo@dynatrace.com"
+        priority: "high"
+        tier: frontend
+        app: easytravel
+    spec:
+      containers:
+      - image: dynatrace/easytravel-angular-frontend:2.0.0.3408
+      #- image: dynatrace/easytravel-angular-frontend:latest
+        name: easytravel-frontend
+        envFrom:
+        - configMapRef:
+            name: easytravel-config
+        - secretRef:
+            name: mongo-credentials
+        env:
+          - name: DT_RELEASE_STAGE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.labels['rollouts-pod-template-hash']
+          - name: DT_RELEASE_VERSION
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.labels['app.kubernetes.io/version']
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            cpu: 200m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+  strategy:
+    canary:
+      canaryService: easytravel-frontend-canary
+      stableService: easytravel-frontend
+      analysis:
+        templates:
+        - templateName: easytravel-server-error-rate
+        args:
+        - name: pod-hash
+          valueFrom:
+            podTemplateHashValue: Latest
+      steps:
+      - setWeight: 20
+      - pause: {duration: 240}
+      - setWeight: 40
+      - pause: {duration: 70}
+      - setWeight: 60
+      - pause: {duration: 70}
+      - setWeight: 80
+      - pause: {duration: 70}
+      - setWeight: 100
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: easytravel-frontend
+  annotations:
+    ingress.kubernetes.io/proxy-body-size: 100M
+    ingress.kubernetes.io/app-root: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: easytravel.dev.argoproj.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: easytravel-frontend
+            port:
+              number: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: easytravel
+    tier: frontend
+  name: easytravel-frontend
+  namespace: easytravel
+spec:
+  ports:
+  - port: 8080
+    targetPort: 8080
+  selector:
+    app: easytravel
+    tier: frontend
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: easytravel
+    tier: frontend
+  name: easytravel-frontend-canary
+  namespace: easytravel
+spec:
+  ports:
+  - port: 8080
+    targetPort: 8080
+  selector:
+    app: easytravel
+    tier: frontend
+  type: ClusterIP

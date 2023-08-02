@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: easytravel-server-error-rate
+spec:
+  args:
+  - name: pod-hash
+  metrics:
+  - name: server-error-rate
+    interval: 30s
+    failureLimit: 5
+    failureCondition: result >= 10
+    initialDelay: 180s
+    provider:
+      web:
+        url: 'redacted'
+        headers:
+          - key: Authorization
+            value: "Api-Token redacted"
+        jsonPath: "{$.result[0].data[0].values[0]}"
