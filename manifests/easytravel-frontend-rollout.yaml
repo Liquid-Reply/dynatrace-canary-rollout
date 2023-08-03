@@ -16,9 +16,9 @@ spec:
         tier: frontend
         app.kubernetes.io/name: easytravel-frontend
         app.kubernetes.io/version: 2.0.0.3408
+        dt.owner: "team-liquid"
       annotations:
-        contact: "demo@dynatrace.com"
-        priority: "high"
+        priority: "medium"
         tier: frontend
         app: easytravel
     spec:
@@ -40,6 +40,8 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.labels['app.kubernetes.io/version']
+          - name: DT_CUSTOM_PROP
+            value: "owner=team-liquid"
         ports:
         - containerPort: 8080
         resources:

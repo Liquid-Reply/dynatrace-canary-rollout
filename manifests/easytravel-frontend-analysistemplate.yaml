@@ -13,8 +13,8 @@ spec:
     initialDelay: 180s
     provider:
       web:
-        url: 'redacted'
+        url: ""
         headers:
           - key: Authorization
-            value: "Api-Token redacted"
+            value: "Api-Token <token>"
         jsonPath: "{$.result[0].data[0].values[0]}"
